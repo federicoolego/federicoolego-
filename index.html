@@ -67,12 +67,18 @@
     .group-switch button[aria-pressed="true"] { background: var(--accent); color: #0d1117; }
     .group-switch button:not([aria-pressed="true"]):hover { color: var(--text); }
 
-    /* ---------- Secciones ---------- */
-    .section + .section { margin-top: 44px; }
+    /* ---------- Secciones (acordeón) ---------- */
+    .section + .section { margin-top: 10px; }
+
     .section-head {
-      display: flex; align-items: center; gap: 12px;
-      margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 12px; width: 100%;
+      padding: 10px 0; background: none; border: 0;
+      border-bottom: 1px solid var(--border);
+      color: inherit; font: inherit; text-align: left; cursor: pointer;
     }
+    .section-head:hover h2 { color: var(--accent); }
+    .section-head:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 6px; }
+
     .section-head .logo {
       width: 34px; height: 34px; border-radius: 8px; flex: 0 0 auto;
       display: grid; place-items: center; font-size: 22px;
@@ -82,10 +88,23 @@
     .section-head h2 {
       font-family: "Barlow Condensed", sans-serif; font-weight: 700;
       font-size: 26px; text-transform: uppercase; letter-spacing: .5px;
+      transition: color .2s;
     }
-    .section-head .count {
-      margin-left: auto; color: var(--muted); font-size: 13px;
+    .section-head .count { margin-left: auto; color: var(--muted); font-size: 13px; }
+    .section-head .chev {
+      color: var(--muted); font-size: 18px; line-height: 1;
+      transition: transform .3s, color .2s; transform: rotate(-90deg);
     }
+    .section.open .chev { transform: rotate(0); color: var(--accent); }
+
+    .panel {
+      display: grid; grid-template-rows: 0fr;
+      transition: grid-template-rows .35s ease;
+    }
+    .section.open .panel { grid-template-rows: 1fr; }
+    /* margen negativo + padding en .grid = espacio para el hover/sombra sin que lo corte el overflow */
+    .panel-inner { overflow: hidden; min-height: 0; margin: 0 -10px; }
+    .panel-inner .grid { padding: 16px 10px 26px; }
 
     /* ---------- Tarjetas ---------- */
     .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 18px; }
@@ -211,6 +230,7 @@
        RENDER
        ============================================================ */
     const $main = document.getElementById("projects");
+    const SOLO_UNO = true; // false = se pueden abrir varias secciones a la vez
 
     function esc(s) {
       return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -238,38 +258,66 @@
         </a>`;
     }
 
-    function sectionHead(grupo, agrupacion) {
-      const logo = grupo.logo
-        ? `<img src="${esc(grupo.logo)}" alt="">`
-        : esc(grupo.emoji || "");
-      return { logo, nombre: grupo.nombre };
+    function getAbiertos(agr) {
+      try { return JSON.parse(localStorage.getItem("open-" + agr)); } catch (e) { return null; }
+    }
+    function saveAbiertos() {
+      const keys = [...$main.querySelectorAll(".section.open")].map(s => s.dataset.key);
+      try { localStorage.setItem("open-" + $main.dataset.agrupacion, JSON.stringify(keys)); } catch (e) {}
+    }
+    function setOpen(sec, v) {
+      sec.classList.toggle("open", v);
+      sec.querySelector(".section-head").setAttribute("aria-expanded", String(v));
+      sec.querySelector(".panel").inert = !v;
     }
 
     function render(agrupacion) {
       const catalogo = agrupacion === "complejo" ? COMPLEJOS : TIPOS;
       const visibles = PROYECTOS.filter(p => !p.hidden);
 
-      $main.innerHTML = Object.entries(catalogo)
-        .map(([key, grupo]) => {
-          const items = visibles.filter(p => p[agrupacion] === key);
-          if (!items.length) return "";
-          const h = sectionHead(grupo, agrupacion);
-          return `
-            <section class="section">
-              <div class="section-head">
-                <div class="logo">${h.logo}</div>
-                <h2>${esc(h.nombre)}</h2>
-                <span class="count">${items.length} ${items.length === 1 ? "app" : "apps"}</span>
+      const grupos = Object.entries(catalogo)
+        .map(([key, grupo]) => ({ key, grupo, items: visibles.filter(p => p[agrupacion] === key) }))
+        .filter(g => g.items.length);
+
+      let abiertos = getAbiertos(agrupacion);
+      if (!Array.isArray(abiertos)) abiertos = grupos.length ? [grupos[0].key] : [];
+
+      $main.dataset.agrupacion = agrupacion;
+      $main.innerHTML = grupos.map(({ key, grupo, items }) => {
+        const open = abiertos.includes(key);
+        const logo = grupo.logo ? `<img src="${esc(grupo.logo)}" alt="">` : esc(grupo.emoji || "");
+        const id = `panel-${agrupacion}-${key}`;
+        return `
+          <section class="section${open ? " open" : ""}" data-key="${esc(key)}">
+            <button type="button" class="section-head" aria-expanded="${open}" aria-controls="${id}">
+              <div class="logo">${logo}</div>
+              <h2>${esc(grupo.nombre)}</h2>
+              <span class="count">${items.length} ${items.length === 1 ? "app" : "apps"}</span>
+              <span class="chev" aria-hidden="true">▾</span>
+            </button>
+            <div class="panel" id="${id}" ${open ? "" : "inert"}>
+              <div class="panel-inner">
+                <div class="grid">${items.map(p => card(p, agrupacion)).join("")}</div>
               </div>
-              <div class="grid">${items.map(p => card(p, agrupacion)).join("")}</div>
-            </section>`;
-        })
-        .join("");
+            </div>
+          </section>`;
+      }).join("");
 
       document.querySelectorAll(".group-switch button").forEach(b =>
         b.setAttribute("aria-pressed", String(b.dataset.group === agrupacion)));
       try { localStorage.setItem("group", agrupacion); } catch (e) {}
     }
+
+    // Delegación: un solo listener sobrevive a los re-render
+    $main.addEventListener("click", e => {
+      const head = e.target.closest(".section-head");
+      if (!head) return;
+      const sec = head.closest(".section");
+      const abrir = !sec.classList.contains("open");
+      if (SOLO_UNO) $main.querySelectorAll(".section.open").forEach(s => setOpen(s, false));
+      setOpen(sec, abrir);
+      saveAbiertos();
+    });
 
     document.querySelectorAll(".group-switch button").forEach(b =>
       b.addEventListener("click", () => render(b.dataset.group)));
