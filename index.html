@@ -197,7 +197,7 @@
 
     const TIPOS = {
       gestor:    { nombre: "Gestor de torneos",      emoji: "🏆", desc: "Zonas, cruces y resultados de cada fecha. Inscribí tu pareja, seguí tus partidos y mirá el cuadro en vivo." },
-      generador: { nombre: "Generador de torneos",   emoji: "🧩", desc: "Imágenes de zonas y playoff listas para compartir por WhatsApp." },
+      generador: { nombre: "Generador de torneos",   emoji: "🏅", desc: "Imágenes de zonas y playoff listas para compartir por WhatsApp." },
       reservas:  { nombre: "Generador de reservas",  emoji: "📅", desc: "Imágenes de reservas listas para compartir por WhatsApp." },
       turno:     { nombre: "Turnos",                 emoji: "🎾", desc: "Tarjetas de confirmación de turno, listas para compartir por WhatsApp." },
       dashboard: { nombre: "Dashboards",             emoji: "📊" }
@@ -246,10 +246,14 @@
                    onerror="this.replaceWith(document.createTextNode('${TIPOS[p.tipo].emoji}'))">`;
     }
 
+    // Si agrupo por complejo, el título dice el tipo; si agrupo por tipo, dice el complejo.
+    function tituloDe(p, agrupacion) {
+      return p.titulo || (agrupacion === "complejo" ? TIPOS[p.tipo].nombre : COMPLEJOS[p.complejo].nombre);
+    }
+
     function card(p, agrupacion) {
       const c = COMPLEJOS[p.complejo], t = TIPOS[p.tipo];
-      // Si agrupo por complejo, el título dice el tipo; si agrupo por tipo, dice el complejo.
-      const titulo = p.titulo || (agrupacion === "complejo" ? t.nombre : c.nombre);
+      const titulo = tituloDe(p, agrupacion);
       const tag = p.titulo ? "" : `<span class="tag">${esc(agrupacion === "complejo" ? c.nombre : t.nombre)}</span>`;
       return `
         <a class="proj" href="${BASE}${esc(p.repo)}/" target="_blank" rel="noopener">
@@ -286,7 +290,12 @@
       const visibles = PROYECTOS.filter(p => !p.hidden);
 
       const grupos = Object.entries(catalogo)
-        .map(([key, grupo]) => ({ key, grupo, items: visibles.filter(p => p[agrupacion] === key) }))
+        .map(([key, grupo]) => ({
+          key, grupo,
+          items: visibles
+            .filter(p => p[agrupacion] === key)
+            .sort((a, b) => tituloDe(a, agrupacion).localeCompare(tituloDe(b, agrupacion), "es", { sensitivity: "base" }))
+        }))
         .filter(g => g.items.length)
         .sort(ordenarGrupos);
 
