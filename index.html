@@ -170,8 +170,8 @@
     </header>
 
     <div class="group-switch" role="group" aria-label="Agrupar proyectos">
-      <button type="button" data-group="complejo" aria-pressed="true">Por complejo</button>
-      <button type="button" data-group="tipo" aria-pressed="false">Por tipo</button>
+      <button type="button" data-group="tipo" aria-pressed="true">Por tipo</button>
+      <button type="button" data-group="complejo" aria-pressed="false">Por complejo</button>
     </div>
 
     <main id="projects"></main>
@@ -182,7 +182,8 @@
   <script>
     /* ============================================================
        DATOS — para sumar un proyecto, agregá una línea acá.
-       hidden: true lo oculta sin borrarlo (reemplaza los comentarios HTML).
+       hidden: true lo oculta sin borrarlo.
+       ultimo: true en un grupo lo manda siempre al final del orden.
        ============================================================ */
     const BASE = "https://federicoolego.github.io/";
 
@@ -191,7 +192,7 @@
       nodo:        { nombre: "NODO",        logo: BASE + "Torneos-Padel-Nodo/favicon.png" },
       defensores:  { nombre: "Defensores",  logo: BASE + "Reservas-Padel-Defensores/favicon.png" },
       complejopm:  { nombre: "Complejo PM", logo: BASE + "Generar-Torneo-Padel-ComplejoPM/favicon.png" },
-      general:     { nombre: "Otras herramientas", emoji: "🧰" }
+      general:     { nombre: "Otras herramientas", emoji: "🧰", ultimo: true }
     };
 
     const TIPOS = {
@@ -199,17 +200,17 @@
       generador: { nombre: "Generador de torneos",   emoji: "🧩", desc: "Imágenes de zonas y playoff listas para compartir por WhatsApp." },
       reservas:  { nombre: "Generador de reservas",  emoji: "📅", desc: "Imágenes de reservas listas para compartir por WhatsApp." },
       turno:     { nombre: "Turnos",                 emoji: "🎾", desc: "Tarjetas de confirmación de turno, listas para compartir por WhatsApp." },
-      dashboard: { nombre: "Dashboards",             emoji: "📊", desc: "Mis Partidos de Padel"}
+      dashboard: { nombre: "Dashboards",             emoji: "📊" }
     };
 
     const PROYECTOS = [
-      
+      // { complejo: "clasico",    tipo: "gestor",    repo: "Torneos-Padel-ElClasico" },
       { complejo: "clasico",    tipo: "generador", repo: "Generar-Torneo-Padel-ElClasico" },
       { complejo: "clasico",    tipo: "reservas",  repo: "Reservas-Padel-ElClasico" },
 
       { complejo: "nodo",       tipo: "gestor",    repo: "Torneos-Padel-Nodo" },
       { complejo: "nodo",       tipo: "generador", repo: "Generar-Torneo-Padel-Nodo" },
-      { complejo: "nodo",       tipo: "reservas",  repo: "Reservas-Padel-Nodo" },   // ← nuevo
+      { complejo: "nodo",       tipo: "reservas",  repo: "Reservas-Padel-Nodo" },
 
       { complejo: "defensores", tipo: "generador", repo: "Generar-Torneo-Padel-Defensores" },
       { complejo: "defensores", tipo: "reservas",  repo: "Reservas-Padel-Defensores" },
@@ -217,11 +218,10 @@
       { complejo: "complejopm", tipo: "generador", repo: "Generar-Torneo-Padel-ComplejoPM" },
 
       { complejo: "general",    tipo: "turno",     repo: "Turno-Padel", titulo: "Turno de Pádel", icon: "🎾" },
-      { complejo: "general", tipo: "dashboard", repo: "Estadisticas-Padel", titulo: "Estadísticas de Pádel", icon: "📊",
-        desc: "Dashboard interactivo con KPIs, gráficos y filtros sobre el historial de mis partidos."},
+      { complejo: "general",    tipo: "dashboard", repo: "Estadisticas-Padel", titulo: "Estadísticas de Pádel", icon: "📊",
+        desc: "Dashboard interactivo con KPIs, gráficos y filtros sobre el historial de mis partidos." },
 
       // Ocultos
-      { complejo: "clasico",    tipo: "gestor",    repo: "Torneos-Padel-ElClasico", hidden: true },
       { complejo: "complejopm", tipo: "dashboard", repo: "Torneos-Padel-Inscripciones", titulo: "Circuito PM - Inscripciones", icon: "🏆",
         desc: "Dashboard para visualizar las parejas inscriptas en torneos organizados por Circuito PM.", hidden: true },
       { complejo: "general", tipo: "dashboard", repo: "finanzas-personales", titulo: "Finanzas Personales", icon: "💰",
@@ -232,7 +232,8 @@
        RENDER
        ============================================================ */
     const $main = document.getElementById("projects");
-    const SOLO_UNO = true; // false = se pueden abrir varias secciones a la vez
+    const SOLO_UNO = true;            // false = se pueden abrir varias secciones a la vez
+    const KEY_GROUP = "group-v2";     // cambiar el sufijo resetea la vista guardada de todos
 
     function esc(s) {
       return String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
@@ -260,6 +261,13 @@
         </a>`;
     }
 
+    // Orden: grupos "ultimo" al final; después más apps primero; empate por nombre ascendente.
+    function ordenarGrupos(a, b) {
+      return (a.grupo.ultimo ? 1 : 0) - (b.grupo.ultimo ? 1 : 0)
+          || b.items.length - a.items.length
+          || a.grupo.nombre.localeCompare(b.grupo.nombre, "es", { sensitivity: "base" });
+    }
+
     function getAbiertos(agr) {
       try { return JSON.parse(localStorage.getItem("open-" + agr)); } catch (e) { return null; }
     }
@@ -279,7 +287,8 @@
 
       const grupos = Object.entries(catalogo)
         .map(([key, grupo]) => ({ key, grupo, items: visibles.filter(p => p[agrupacion] === key) }))
-        .filter(g => g.items.length);
+        .filter(g => g.items.length)
+        .sort(ordenarGrupos);
 
       let abiertos = getAbiertos(agrupacion);
       if (!Array.isArray(abiertos)) abiertos = grupos.length ? [grupos[0].key] : [];
@@ -307,7 +316,7 @@
 
       document.querySelectorAll(".group-switch button").forEach(b =>
         b.setAttribute("aria-pressed", String(b.dataset.group === agrupacion)));
-      try { localStorage.setItem("group", agrupacion); } catch (e) {}
+      try { localStorage.setItem(KEY_GROUP, agrupacion); } catch (e) {}
     }
 
     // Delegación: un solo listener sobrevive a los re-render
@@ -324,8 +333,8 @@
     document.querySelectorAll(".group-switch button").forEach(b =>
       b.addEventListener("click", () => render(b.dataset.group)));
 
-    let inicial = "complejo";
-    try { inicial = localStorage.getItem("group") || "complejo"; } catch (e) {}
+    let inicial = "tipo";
+    try { inicial = localStorage.getItem(KEY_GROUP) || "tipo"; } catch (e) {}
     render(inicial);
 
     /* ============================================================
