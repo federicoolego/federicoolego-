@@ -203,7 +203,7 @@
     };
 
     const PROYECTOS = [
-      // { complejo: "clasico",    tipo: "gestor",    repo: "Torneos-Padel-ElClasico" },
+      
       { complejo: "clasico",    tipo: "generador", repo: "Generar-Torneo-Padel-ElClasico" },
       { complejo: "clasico",    tipo: "reservas",  repo: "Reservas-Padel-ElClasico" },
 
@@ -217,11 +217,11 @@
       { complejo: "complejopm", tipo: "generador", repo: "Generar-Torneo-Padel-ComplejoPM" },
 
       { complejo: "general",    tipo: "turno",     repo: "Turno-Padel", titulo: "Turno de Pádel", icon: "🎾" },
-      { complejo: "general",    tipo: "Dashboards",     repo: "Estadisticas-Padel", titulo: "Estadisticas de Padel", icon: "🎾" },
+      { complejo: "general", tipo: "dashboard", repo: "Estadisticas-Padel", titulo: "Estadísticas de Pádel", icon: "📊",
+        desc: "Dashboard interactivo con KPIs, gráficos y filtros sobre el historial de mis partidos."},
 
       // Ocultos
-      { complejo: "general", tipo: "dashboard", repo: "Estadisticas-Padel", titulo: "Estadísticas de Pádel", icon: "📊",
-        desc: "Dashboard interactivo con KPIs, gráficos y filtros sobre el historial de mis partidos.", hidden: true },
+      { complejo: "clasico",    tipo: "gestor",    repo: "Torneos-Padel-ElClasico", hidden: true },
       { complejo: "complejopm", tipo: "dashboard", repo: "Torneos-Padel-Inscripciones", titulo: "Circuito PM - Inscripciones", icon: "🏆",
         desc: "Dashboard para visualizar las parejas inscriptas en torneos organizados por Circuito PM.", hidden: true },
       { complejo: "general", tipo: "dashboard", repo: "finanzas-personales", titulo: "Finanzas Personales", icon: "💰",
